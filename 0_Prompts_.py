@@ -328,4 +328,46 @@ print(f"Output: {result}")
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Evaluation
 
+# COMMAND ----------
+
+def evaluate_model(model_func, test_cases):
+    '''
+    Evaluate the model on a set of test cases.
+
+    Args:
+    model_func: The function that makes predictions.
+    test_cases: A list of dictionaries, where each dictionary contains an "input" text and a "label" for the input.
+
+    Returns:
+    The accuracy of the model on the test cases. 
+    '''
+    correct = 0
+    total = len(test_cases)
+    
+    for case in test_cases:
+        input_text = case['input']
+        true_label = case['label']
+        prediction = model_func(input_text).strip()
+        
+        is_correct = prediction.lower() == true_label.lower()
+        correct += int(is_correct)
+        
+        print(f"Input: {input_text}")
+        print(f"Predicted: {prediction}")
+        print(f"Actual: {true_label}")
+        print(f"Correct: {is_correct}\n")
+    
+    accuracy = correct / total
+    return accuracy
+
+test_cases = [
+    {"input": "This product exceeded my expectations!", "label": "Positive"},
+    {"input": "I'm utterly disappointed with the service.", "label": "Negative"},
+    {"input": "The temperature today is 72 degrees.", "label": "Neutral"}
+]
+
+accuracy = evaluate_model(few_shot_sentiment_classification, test_cases)
+print(f"Model Accuracy: {accuracy:.2f}")
