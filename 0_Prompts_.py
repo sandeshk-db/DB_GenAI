@@ -329,45 +329,82 @@ print(f"Output: {result}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Evaluation
+# MAGIC ###Chain OF Thought Prompting
 
 # COMMAND ----------
 
-def evaluate_model(model_func, test_cases):
-    '''
-    Evaluate the model on a set of test cases.
+# Standard prompt
+standard_prompt = PromptTemplate(
+    input_variables=["question"],
+    template="Answer the following question conciesly: {question}."
+)
 
-    Args:
-    model_func: The function that makes predictions.
-    test_cases: A list of dictionaries, where each dictionary contains an "input" text and a "label" for the input.
+# Chain of Thought prompt
+cot_prompt = PromptTemplate(
+    input_variables=["question"],
+    template="Answer the following question step by step conciesly: {question}"
+)
 
-    Returns:
-    The accuracy of the model on the test cases. 
-    '''
-    correct = 0
-    total = len(test_cases)
-    
-    for case in test_cases:
-        input_text = case['input']
-        true_label = case['label']
-        prediction = model_func(input_text).strip()
-        
-        is_correct = prediction.lower() == true_label.lower()
-        correct += int(is_correct)
-        
-        print(f"Input: {input_text}")
-        print(f"Predicted: {prediction}")
-        print(f"Actual: {true_label}")
-        print(f"Correct: {is_correct}\n")
-    
-    accuracy = correct / total
-    return accuracy
+# Create chains
+standard_chain = standard_prompt | chat_model
+cot_chain = cot_prompt | chat_model
 
-test_cases = [
-    {"input": "This product exceeded my expectations!", "label": "Positive"},
-    {"input": "I'm utterly disappointed with the service.", "label": "Negative"},
-    {"input": "The temperature today is 72 degrees.", "label": "Neutral"}
-]
+# Example question
+question = "If a train travels 120 km in 2 hours, what is its average speed in km/h?"
 
-accuracy = evaluate_model(few_shot_sentiment_classification, test_cases)
-print(f"Model Accuracy: {accuracy:.2f}")
+# Get responses
+standard_response = standard_chain.invoke(question).content
+cot_response = cot_chain.invoke(question).content
+
+print("Standard Response:")
+print(standard_response)
+print("**"*6)
+print("\nChain of Thought Response:")
+print(cot_response)
+
+# COMMAND ----------
+
+## here we specifiy actions to be taken step-by-step
+
+advanced_cot_prompt = PromptTemplate(
+    input_variables=["question"],
+    template="""Solve the following problem step by step. For each step:
+1. State what you're going to calculate
+2. Write the formula you'll use (if applicable)
+3. Perform the calculation
+4. Explain the result
+
+Question: {question}
+
+Solution:"""
+)
+
+advanced_cot_chain = advanced_cot_prompt | chat_model
+
+complex_question = "A car travels 150 km at 60 km/h, then another 100 km at 50 km/h. What is the average speed for the entire journey?"
+
+advanced_cot_response = advanced_cot_chain.invoke(complex_question).content
+print(advanced_cot_response)
+
+# COMMAND ----------
+
+### comparing if COT works better than standard prompts -- In complex calculations they do perform better!!
+
+challenging_question = """
+A cylindrical water tank with a radius of 1.5 meters and a height of 4 meters is 2/3 full. 
+If water is being added at a rate of 10 liters per minute, how long will it take for the tank to overflow? 
+Give your answer in hours and minutes, rounded to the nearest minute. 
+(Use 3.14159 for π and 1000 liters = 1 cubic meter)"""
+
+standard_response = standard_chain.invoke(challenging_question).content
+cot_response = advanced_cot_chain.invoke(challenging_question).content
+
+print("Standard Response:")
+print(standard_response)
+print("<>"*5)
+print("\nChain of Thought Response:")
+print(cot_response)
+
+# COMMAND ----------
+
+
